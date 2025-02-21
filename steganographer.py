@@ -2,7 +2,7 @@ import cv2  # for reading and writing image data
 import heapq  # for heap data structure
 import os  # to work with files
 import random  # for randomisation
-from AES import *
+from algos.AES import *
 
 compTextRef = ""
 side0Mode = 0

@@ -2,8 +2,8 @@ import cv2  # for reading and writing image data
 import heapq  # for heap data structure
 import os  # to work with files
 import random  # for randomisation
-from AES import *
-from arithmetic_encoding import ArithmeticEncoder, ArithmeticDecoder
+from algos.AES import *
+from algos.arithmetic_encoding import ArithmeticEncoder, ArithmeticDecoder
 
 
 compTextRef = ""
