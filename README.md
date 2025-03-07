@@ -18,5 +18,5 @@ pip install opencv-python numpy pycryptodome
 python stego.py
 ```
 ### 4. Input Text File & Image*
-* your image file can be either jpg/png.
+* your image file can be either be in jpg/png.
 
