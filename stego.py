@@ -1,47 +1,10 @@
 import cv2
 import numpy as np
-import pickle  
+import pickle
 import os
-
-class ArithmeticCoding:
-    def __init__(self):
-        self.prob_table = {}
-        self.sorted_chars = [] 
-
-    def build_probability_table(self, text):
-        """Build a probability table for the text."""
-        freq = {}
-        for char in text:
-            freq[char] = freq.get(char, 0) + 1
-        total = len(text)
-        self.prob_table = {char: freq[char] / total for char in freq}
-        self.sorted_chars = sorted(self.prob_table.keys())  
-
-    def encode(self, text):
-        """Encode text using arithmetic encoding."""
-        self.build_probability_table(text)
-        low, high = 0.0, 1.0
-        
-        for char in text:
-            range_size = high - low
-            char_index = self.sorted_chars.index(char)
-            low = low + range_size * sum(self.prob_table[c] for c in self.sorted_chars[:char_index])
-            high = low + range_size * self.prob_table[char]
-        
-        return (low + high) / 2  
-
-    def decode(self, value, length):
-        """Decode value to text using arithmetic decoding."""
-        text = ""
-        for _ in range(length):
-            for char in self.sorted_chars:
-                low = sum(self.prob_table[c] for c in self.sorted_chars if c < char)
-                high = low + self.prob_table[char]
-                if low <= value < high:
-                    text += char
-                    value = (value - low) / (high - low)
-                    break
-        return text
+from algorithm.AES_encryption import encrypt_aes, decrypt_aes
+from algorithm.arithmetic_encoding import ArithmeticCoding
+from Crypto.Random import get_random_bytes
 
 def detect_edges(image):
     """Detect edges in the image using Canny edge detection."""
@@ -146,7 +109,7 @@ def main():
     if not os.path.exists(image_path):
         print("Image file not found!")
         return
-
+    
     text_path = input("Enter the path to the text file: ")
     if not os.path.exists(text_path):
         print("Text file not found!")
@@ -158,13 +121,22 @@ def main():
     
     print("Input Text:", text) 
     
+    aes_key = get_random_bytes(32) 
+    print("AES Key:", aes_key.hex())
+    
+    encrypted_text = encrypt_aes(text, aes_key)
+    print("Encrypted Text:", encrypted_text.hex())
+    
     edges = detect_edges(image)
     cv2.imwrite("edges.png", edges)
     
-    encrypted_image = embed_text_in_edges(image, edges, text, chunk_size=10)
+    encrypted_image = embed_text_in_edges(image, edges, encrypted_text.hex(), chunk_size=10)
     cv2.imwrite("encrypted_image.png", encrypted_image)
     
-    decrypted_text = extract_text_from_edges(encrypted_image, edges)
+    extracted_encrypted_text = extract_text_from_edges(encrypted_image, edges)
+    
+    decrypted_text = decrypt_aes(bytes.fromhex(extracted_encrypted_text), aes_key)
+    print("Decrypted Text:", decrypted_text)
     
     with open("decrypted_text.txt", "w") as file:
         file.write(decrypted_text)
