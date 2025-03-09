@@ -4,7 +4,6 @@ class ArithmeticCoding:
         self.sorted_chars = [] 
 
     def build_probability_table(self, text):
-        """Build a probability table for the text."""
         freq = {}
         for char in text:
             freq[char] = freq.get(char, 0) + 1
@@ -13,7 +12,6 @@ class ArithmeticCoding:
         self.sorted_chars = sorted(self.prob_table.keys())  
 
     def encode(self, text):
-        """Encode text using arithmetic encoding."""
         self.build_probability_table(text)
         low, high = 0.0, 1.0
         
@@ -26,7 +24,6 @@ class ArithmeticCoding:
         return (low + high) / 2  
 
     def decode(self, value, length):
-        """Decode value to text using arithmetic decoding."""
         text = ""
         for _ in range(length):
             for char in self.sorted_chars:
