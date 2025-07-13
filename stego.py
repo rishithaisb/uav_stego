@@ -7,27 +7,23 @@ from algorithm.arithmetic_encoding import ArithmeticCoding
 from Crypto.Random import get_random_bytes
 
 def detect_edges(image):
-    """Detect edges in the image using Canny edge detection."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 100, 200)
+    edges = cv2.Canny(gray, 50, 150)
     return edges
 
 def float_to_binary(value):
-    """Convert a floating-point value to a binary string."""
     packed = np.float64(value).tobytes()
     binary = ''.join(f"{byte:08b}" for byte in packed)
     return binary
 
 def binary_to_float(binary):
-    """Convert a binary string back to a floating-point value."""
     if len(binary) != 64:
         raise ValueError("Binary string must be 64 bits long.")
     bytes_list = [int(binary[i:i + 8], 2) for i in range(0, 64, 8)]
     value = np.frombuffer(bytes(bytes_list), dtype=np.float64)[0]
     return value
 
-def embed_text_in_edges(image, edges, text, chunk_size=10):
-    """Embed text into the edges of the image using chunk-based arithmetic encoding."""
+def embed_text_in_edges(image, edges, text, chunk_size=10, bits_per_pixel=2):
     ac = ArithmeticCoding()
     edge_pixels = np.argwhere(edges > 0)
     total_pixels = len(edge_pixels)
@@ -57,12 +53,12 @@ def embed_text_in_edges(image, edges, text, chunk_size=10):
         
         for j, bit in enumerate(binary_value):
             x, y = edge_pixels[start + j]
-            image[x, y, 0] = (image[x, y, 0] & 0xFE) | int(bit)
+            channel = 1 if j % 2 == 0 else 2  # Alternate between Green & Blue channels
+            image[x, y, channel] = (image[x, y, channel] & 0xFE) | int(bit)
     
     return image
 
 def extract_text_from_edges(image, edges):
-    """Extract text from the edges of the image using chunk-based arithmetic decoding."""
     edge_pixels = np.argwhere(edges > 0)
     total_pixels = len(edge_pixels)
     
@@ -82,7 +78,8 @@ def extract_text_from_edges(image, edges):
         
         for j in range(64):
             x, y = edge_pixels[start + j]
-            bit = image[x, y, 0] & 1
+            channel = 1 if j % 2 == 0 else 2  # Extract from Green & Blue channels
+            bit = image[x, y, channel] & 1
             binary_value.append(str(bit))
         
         binary_value = ''.join(binary_value)
@@ -116,7 +113,7 @@ def main():
         return
     
     image = cv2.imread(image_path)
-    with open(text_path, "r") as file:
+    with open(text_path, "r", encoding="utf-8") as file:
         text = file.read()
     
     print("Input Text:", text) 
@@ -130,7 +127,7 @@ def main():
     edges = detect_edges(image)
     cv2.imwrite("edges.png", edges)
     
-    encrypted_image = embed_text_in_edges(image, edges, encrypted_text.hex(), chunk_size=10)
+    encrypted_image = embed_text_in_edges(image, edges, encrypted_text.hex(), chunk_size=10, bits_per_pixel=2)
     cv2.imwrite("encrypted_image.png", encrypted_image)
     
     extracted_encrypted_text = extract_text_from_edges(encrypted_image, edges)
@@ -138,7 +135,7 @@ def main():
     decrypted_text = decrypt_aes(bytes.fromhex(extracted_encrypted_text), aes_key)
     print("Decrypted Text:", decrypted_text)
     
-    with open("decrypted_text.txt", "w") as file:
+    with open("decrypted_text.txt", "w", encoding="utf-8") as file:
         file.write(decrypted_text)
     
     print("Encryption and decryption completed successfully!")
